@@ -1,14 +1,23 @@
 ############cage environmental data analysis#######
 setwd("D:/Mayur")
+#__________________________________________________________________
+######## packages###############
+#__________________________________________________________________
 library("mgcv")
 library("dplyr")
 library("ggplot2")
 
+#__________________________________________________________________
+######## data ###############
+#__________________________________________________________________
 orig.data<-read.csv("cage_envi_data.csv")
 summary(orig.data)
 View(orig.data)
-#orig.data[164,15]<-0.41
 boxplot(orig.data[,15])
+
+#__________________________________________________________________
+######## GAM model fitting ###############
+#__________________________________________________________________
 set.seed(123)
 gam.tem<-gam(SDI~s(Temperature),data =orig.data)
 set.seed(123)
@@ -52,7 +61,9 @@ plot(gam.nit,shade=TRUE,seWithMean=TRUE,shade.col = "skyblue" ,scale=0, cex.lab=
 plot(gam.chl,shade=TRUE,seWithMean=TRUE,shade.col = "skyblue" ,scale=0, cex.lab=1.5, cex.axis=1.5,ylim = c(-0.2,0.3))
 dev.off()
 
-####multi GAM model#######
+#__________________________________________________________________
+######## multi GAM model###############
+#__________________________________________________________________
 set.seed(123)
 gam1<-gam(SDI~s(TSS)+s(Chlorophyll),data =orig.data)
 set.seed(123)
@@ -83,10 +94,11 @@ gam10<-gam(SDI~s(TSS)+s(Chlorophyll)+s(Nitrate)+s(DO)+s(Ammonia)+s(NPP)+
 AIC(gam1,gam2,gam3,gam4,gam5,gam6,gam7,gam8,gam9,gam10)
 
 summary(gam8)
-
 plot(gam9)
-?gam
-#######PCA based GAM######
+
+#__________________________________________________________________
+######## PCA based GAM ###############
+#__________________________________________________________________
 set.seed(123)
 gam.do1<-gam(Shannon.diversity~s(DO),data =orig.data)
 set.seed(123)
@@ -133,6 +145,7 @@ AIC(gam.101,gam.102,gam.103,gam.104,gam.105,gam.106)
 
 summary(gam.106)
 
+
 ##GAM ploting for best model
 #jpeg("GAM plot_gam106_.jpg", res = 600,height = 8,width =10,units = "in")
 par(mfrow=c(2,4))
@@ -153,7 +166,11 @@ vis.gam(gam.106, view=c("TSS","DO"), color = "topo", type = 'response',
         xlab = "TSS", ylab = "DO", zlab = "SDI", zlim = c(2.5,4.0), cex.lab=1.15, cex.axis=1.15, 
         cex.main =2, main="", phi=30, theta=45, n.grid = 500, border=NA)
 dev.off()
-##########correlation among variables#########
+
+#__________________________________________________________________
+######## correlation among variables ###############
+#__________________________________________________________________
+
 library(GGally)
 library(ggcorrplot)
 
@@ -179,8 +196,10 @@ ggpairs(orig.data,
  mapping = aes(color = Time))
 dev.off()
 
+#__________________________________________________________________
+######## PCA data arrangement ###############
+#__________________________________________________________________
 
-#################PCA data arrangement##############
 library("factoextra")
 library(FactoMineR)
 library(cowplot)
@@ -192,7 +211,7 @@ pca.data.all$site<-c(rep("Cage",120),rep("Reference",20)) # add site vari. to th
 str(pca.data.all)
 data.all.sca<-scale(pca.data.all[,c(-1,-2,-15)], center = T) 
 
-#########filter time data##########
+#########filter time data
 
 ####Before culture
 str(orig.data)
@@ -215,11 +234,15 @@ pca.data.a$site<-c(rep("Cage",24),rep("Reference",4)) # add site vari. to the da
 #View(pca.data.a)
 str(pca.data.a)
 
-########### All data PCA#############
+########### All data PCA
 #add the site to data.all.sca
 data.all.sca1<-cbind(data.all.sca,pca.data.all["site"])
 #write.csv(data.sca1,"data.sca1.csv")
 str(data.all.sca1)
+
+#__________________________________________________________________
+######## PCA ###############
+#__________________________________________________________________
 pca.all<-PCA(data.all.sca1[,-13], ncp = 12)
 pca.all
 eigenvalues1 <- pca.all$eig
@@ -273,7 +296,7 @@ fviz_pca_ind(pca.all,
              ellipse.level=0.95
 )
 dev.off()
-########### Before data PCA#############
+########### Before culture PCA
 #scale transformation for PCA
 str(pca.data.b)
 data.b.sca<-scale(pca.data.b[,c(-1:-2,-15)], center = T) 
@@ -336,7 +359,7 @@ fviz_pca_ind(pca.b,
 dev.off()
 
 
-###########During PCA##############
+###########During culture PCA
 #scale transformation for PCA
 str(pca.data.d)
 data.d.sca<-scale(pca.data.d[,c(-1:-2,-15)], center = T) 
@@ -402,7 +425,7 @@ fviz_pca_ind(pca.d,
 )
 dev.off()
 
-#######After PCA############
+#######After culture PCA
 #scale transformation for PCA
 str(pca.data.a)
 data.a.sca<-scale(pca.data.a[,c(-1:-2,-15)], center = T) 
@@ -466,12 +489,15 @@ fviz_pca_ind(pca.a,
 )
 dev.off()
 
-###########cluster###########
+#__________________________________________________________________
+######## Cluster analysis ###############
+#__________________________________________________________________
+
 library(dendextend)
 #install.packages("vegan")
 library (vegan)
 library (cluster)
-#data prepared from pca data
+#####data prepared from pca data
 den.data.b<-pca.data.b
 den.data.b$group<-c(rep("BCC",48),rep("BCR",8)) # add site vari. to the data
 str(den.data.b)
@@ -486,19 +512,20 @@ den.data.a$group<-c(rep("ACC",48),rep("ACR",8)) # add site vari. to the data
 str(den.data.a)
 den.data.a<-den.data.a[c(-49,-50),]
 
-#join all the group
+######join all the group
 dend.data<-rbind(den.data.b,den.data.d,den.data.a)
 dend.data<-dend.data[,c(-1,-2,-15)]
 rownames(dend.data)<-c(paste0("BCC", 1:48),paste0("BCR", 1:8),
                        paste0("DCC", 1:41),paste0("DCR", 1:7),
                        paste0("ACC", 1:48),paste0("ACR", 1:6))
 
-#mean data for each group
+######mean data for each group
 meandend.data<-aggregate(dend.data[,1:12], by = list(group = dend.data$group), mean)
 row.names(meandend.data)<-c("ACC","ACR","BCC","BCR","DCC","DCR")
 str(meandend.data)
+
 #remove the last column from data frame
-# Create a dendrogram and plot it
+###### Create a dendrogram and plot it
 str(dend.data)
 dend <- dend.data[-c(13,13)] %>%  scale %>% 
   dist %>% hclust %>% as.dendrogram
@@ -506,15 +533,15 @@ dend %>% plot
 
 s<-dend.data[-c(13,13)] 
 
-#Distance table created with bray methos for square root transformed data are
+####Distance table created with bray methos for square root transformed data are
 dis <- vegdist (sqrt (s), method = 'bray') # percentage cover data are transformed by square root
 
-# cluster using different method namely single, complete and average
+#### cluster using different method namely single, complete and average
 cluster.single <- hclust (d = dis, method = 'single')
 cluster.complete <- hclust (dis, 'complete')
 cluster.average <- hclust (dis, 'average')
 
-#Plot the dendrogram for different method
+#####Plot the dendrogram for different method
 par (mfrow = c (1,1)) # will draw all dendrogram into one figure
 
 plot (cluster.single, main = 'Single linkage')
@@ -757,6 +784,10 @@ dev.off()
 
 plot (dend_mean, 
       hang=-1,label=meandend.data$group)
+
+#__________________________________________________________________
+######## THE END ###############
+#__________________________________________________________________
 #jpeg("vert_dendogram.mean.jpg", res = 600,height = 5,width = 7,units = "in")
 plot_horiz.dendrogram(dend_mean)
 dev.off()
