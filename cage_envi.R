@@ -1,11 +1,21 @@
 ############cage environmental data analysis#######
-setwd("D:/Mayur")
+setwd("D:/")
 #__________________________________________________________________
 ######## packages###############
 #__________________________________________________________________
 library("mgcv")
 library("dplyr")
 library("ggplot2")
+library(GGally)
+library(ggcorrplot)
+library("factoextra")
+library(FactoMineR)
+library(cowplot)
+library(dendextend)
+library (vegan)
+library (cluster)
+library(NbClust)
+library(circlize)
 
 #__________________________________________________________________
 ######## data ###############
@@ -14,6 +24,32 @@ orig.data<-read.csv("cage_envi_data.csv")
 summary(orig.data)
 View(orig.data)
 boxplot(orig.data[,15])
+
+#__________________________________________________________________
+######## correlation among variables ###############
+#__________________________________________________________________
+
+str(orig.data)
+corr <- round(cor(orig.data[,c(5:15)]),2)
+
+#jpeg("corr_variables.jpg", res = 600,height = 6,width = 7,units = "in")
+ggcorrplot(corr,tl.cex = 12,lab_size = 5, lab = F, digits = 2,legend.title = "Correlation",
+           type="lower",outline.col = "white")
+dev.off()
+
+str(orig.data)
+
+#jpeg("corr_all1.jpg", res = 600,height = 11,width = 17,units = "in")
+ggpairs(orig.data,
+        columns = c("Temperature","Salinity","pH","DO","GPP","NPP","TSS","Ammonia",
+                    "Phosphate","Nitrate","Chlorophyll","SDI"), 
+        title = " ", upper = list(continuous = wrap("cor",size = 3)),
+        lower = list(continuous = wrap("smooth",
+                                       alpha = 0.3,
+                                       size = 0.1))
+,
+ mapping = aes(color = Time))
+dev.off()
 
 #__________________________________________________________________
 ######## GAM model fitting ###############
@@ -145,7 +181,6 @@ AIC(gam.101,gam.102,gam.103,gam.104,gam.105,gam.106)
 
 summary(gam.106)
 
-
 ##GAM ploting for best model
 #jpeg("GAM plot_gam106_.jpg", res = 600,height = 8,width =10,units = "in")
 par(mfrow=c(2,4))
@@ -167,43 +202,10 @@ vis.gam(gam.106, view=c("TSS","DO"), color = "topo", type = 'response',
         cex.main =2, main="", phi=30, theta=45, n.grid = 500, border=NA)
 dev.off()
 
-#__________________________________________________________________
-######## correlation among variables ###############
-#__________________________________________________________________
-
-library(GGally)
-library(ggcorrplot)
-
-str(orig.data)
-corr <- round(cor(orig.data[,c(5:15)]),2)
-
-#jpeg("corr_variables.jpg", res = 600,height = 6,width = 7,units = "in")
-ggcorrplot(corr,tl.cex = 12,lab_size = 5, lab = F, digits = 2,legend.title = "Correlation",
-           type="lower",outline.col = "white")
-dev.off()
-
-str(orig.data)
-
-#jpeg("corr_all1.jpg", res = 600,height = 11,width = 17,units = "in")
-ggpairs(orig.data,
-        columns = c("Temperature","Salinity","pH","DO","GPP","NPP","TSS","Ammonia",
-                    "Phosphate","Nitrate","Chlorophyll","SDI"), 
-        title = " ", upper = list(continuous = wrap("cor",size = 3)),
-        lower = list(continuous = wrap("smooth",
-                                       alpha = 0.3,
-                                       size = 0.1))
-,
- mapping = aes(color = Time))
-dev.off()
 
 #__________________________________________________________________
 ######## PCA data arrangement ###############
 #__________________________________________________________________
-
-library("factoextra")
-library(FactoMineR)
-library(cowplot)
-library(dplyr)
 
 #for all data   
 pca.data.all<-orig.data[,c(2:3,5:16)]#data filter
@@ -212,7 +214,6 @@ str(pca.data.all)
 data.all.sca<-scale(pca.data.all[,c(-1,-2,-15)], center = T) 
 
 #########filter time data
-
 ####Before culture
 str(orig.data)
 pca.data.b<- orig.data[,c(-1,-4)] %>% filter(Time=="Before Culture") 
@@ -296,6 +297,7 @@ fviz_pca_ind(pca.all,
              ellipse.level=0.95
 )
 dev.off()
+
 ########### Before culture PCA
 #scale transformation for PCA
 str(pca.data.b)
@@ -493,10 +495,6 @@ dev.off()
 ######## Cluster analysis ###############
 #__________________________________________________________________
 
-library(dendextend)
-#install.packages("vegan")
-library (vegan)
-library (cluster)
 #####data prepared from pca data
 den.data.b<-pca.data.b
 den.data.b$group<-c(rep("BCC",48),rep("BCR",8)) # add site vari. to the data
@@ -553,7 +551,7 @@ abline(h=0.025)
 
 ##save the dendrogram plot in to jpeg and label setting
 
-#jpeg("F:\\PhD\\Bycatch\\winterdendro1.jpg", res = 600, height = 7,width =10,units = "in")
+#jpeg("winterdendro1.jpg", res = 600, height = 7,width =10,units = "in")
 plot (cluster.average, 
       hang=-1, 
       labels = dend.data$group, 
@@ -579,9 +577,7 @@ rect.hclust (cluster.complete, h= 0.75, which = c(3,6,7))
 clusters <- cutree (cluster.average, k = 7)
 clusters
 ############cluster#####
-#install.packages("NbClust")
-library(NbClust)
-library (cluster)
+
 cluster.flexible <- agnes (x = dis, method = 'average', par.method = 0.7)
 
 cluster.flexible.hclust <- as.hclust (cluster.flexible)
@@ -636,9 +632,6 @@ res.nbclust <- NbClust(df, distance = "euclidean",
 factoextra::fviz_nbclust(res.nbclust) + theme_minimal() +
   ggtitle("NbClust's optimal number of clusters")
 
-
-#install.packages("clustree")
-library(clustree)
 tmp <- NULL
 for (k in 1:11){
   tmp[k] <- kmeans(df, k, nstart = 30)
@@ -663,15 +656,13 @@ d_s <- dist(s) # method="man" # is a bit better
 hc_c <- hclust(d_s, method = "average")
 str(d_s)
 dend <- as.dendrogram(hc_c)
-#install.packages("circlize")
-library(circlize)
+
 # Requires that the circlize package will be installed
 # Color the branches based on the clusters:
 dend<-dend %>% color_branches(k=7)%>%color_labels(k=7) #, groupLabels=iris_species)
 
 par(mar = rep(0,4))
 circlize_dendrogram(dend)
-#?circlize_dendrogram
 
 #jpeg("circle_dendogram.jpg", res = 600,height = 9,width = 9,units = "in")
 circlize_dendrogram(dend)
@@ -707,7 +698,6 @@ gplots::heatmap.2(as.matrix(s),
 )
 
 ########mean group dendogram#########
-
 str(meandend.data)
 meandend <- meandend.data[-c(1,1)] %>%  scale %>% 
   dist %>% hclust %>% as.dendrogram
@@ -768,8 +758,6 @@ hc_mean <- hclust(ds_mean, method = "average")
 
 dend_mean <- as.dendrogram(hc_mean)
 
-#install.packages("circlize")
-library(circlize)
 # Requires that the circlize package will be installed
 # Color the branches based on the clusters:
 dend_mean<-dend_mean %>% color_branches(k=3)%>%color_labels(k=3) #, groupLabels=iris_species)
@@ -785,9 +773,9 @@ dev.off()
 plot (dend_mean, 
       hang=-1,label=meandend.data$group)
 
-#__________________________________________________________________
-######## THE END ###############
-#__________________________________________________________________
 #jpeg("vert_dendogram.mean.jpg", res = 600,height = 5,width = 7,units = "in")
 plot_horiz.dendrogram(dend_mean)
 dev.off()
+#__________________________________________________________________
+######## THE END ###############
+#__________________________________________________________________
