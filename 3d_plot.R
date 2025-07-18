@@ -1,16 +1,23 @@
-setwd("D:/Mayur/phyto plot")
+#_____________________________________________________________________
+######### Packages #######################
+#_____________________________________________________________________
+library("plot3D")
+library(latticeExtra)
+
+#_____________________________________________________________________
+######### Data #######################
+#_____________________________________________________________________
+
+setwd("D:/")
 data<- read.csv("merged_phyto.csv")
 head(data)
 
-#install.packages("plot3D")
-library("plot3D")
-
-
-###############new
-library(latticeExtra)
-head(data)
 data$variable <- as.factor(data$variable)
 data$species <- as.factor(data$species)
+
+#_____________________________________________________________________
+######### 3D barplot #######################
+#_____________________________________________________________________
 
 # Define a custom color palette
 custom_colors <- rainbow(length(levels(data$species)))
@@ -32,8 +39,6 @@ cloud(Density ~ variable + species, data = data, panel.3d.cloud = panel.3dbars,
       screen = list(z = 50, x = -70),
       aspect = c(3, 1, 0.5), zoom= 0.9)
 dev.off()
-
-
 
 #jpeg("planktons1_new.jpg", res = 600,height = 21,width = 32,units = "in")
 # Plot with increased frame size and adjusted aspect ratio
@@ -77,3 +82,6 @@ cloud(
   zoom = 0.9
 )
 dev.off()
+#_____________________________________________________________________
+######### THE END #######################
+#_____________________________________________________________________
